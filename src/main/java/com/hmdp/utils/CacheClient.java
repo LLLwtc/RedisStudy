@@ -19,6 +19,7 @@ import java.util.function.Function;
 
 import static com.hmdp.utils.RedisConstants.*;
 
+//封装redis工具类
 @Slf4j
 @Component
 public class CacheClient {

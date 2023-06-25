@@ -11,6 +11,7 @@ import com.hmdp.entity.Shop;
 import com.hmdp.mapper.ShopMapper;
 import com.hmdp.service.IShopService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.hmdp.utils.CacheClient;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,29 +39,20 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
 
     @Resource
     private StringRedisTemplate stringRedisTemplate;
+    @Resource
+    private CacheClient cacheClient;
+
     @Override
-//    public Result queryById(Long id) {
-//        //从redis中查询信息
-//        String key = CACHE_SHOP_KEY + id;
-//        String shopJson = stringRedisTemplate.opsForValue().get(key);
-//        //信息存在，返回
-//        if(StrUtil.isNotBlank(shopJson))return Result.ok(JSONUtil.toBean(shopJson,Shop.class));
-//        //解决缓存穿透，对于不存在的id，""
-//        if(shopJson!=null)return Result.fail("数据错误");
-//        //不存在，从数据库中查
-//        Shop shop = getById(id);
-//        if(shop==null){
-//            //数据库中不存在，返回错误
-//            //解决缓存穿透，对于不存在的id，redis存的是null
-//            stringRedisTemplate.opsForValue().set(key,"",CACHE_NULL_TTL,TimeUnit.MINUTES);
-//            return Result.fail("数据不存在");
-//        }
-//        //数据库中存在，写到redis中，返回
-//        stringRedisTemplate.opsForValue().set(key,JSONUtil.toJsonStr(shop),CACHE_SHOP_TTL, TimeUnit.MINUTES);
-//        return Result.ok(shop);
-//    }
+    public Result queryById(Long id) {
+        //解决缓存穿透
+//        Shop shop = cacheClient.queryWithPassThrough(CACHE_SHOP_KEY, id, Shop.class, this::getById, CACHE_SHOP_TTL, TimeUnit.MINUTES);
+        Shop shop = cacheClient.queryWithLogicalExpire(CACHE_SHOP_KEY, id, Shop.class, this::getById, 10L, TimeUnit.SECONDS);
+        if(shop==null)return Result.fail("店铺不存在");
+        return Result.ok(shop);
+
+    }
     //缓存击穿--互斥锁解法
-    public Result queryById(Long id) throws InterruptedException {
+    public Result queryWithMutex(Long id) throws InterruptedException {
         //缓存击穿解决方法：从缓存中查数据，查到返回，没有查到，进行互斥锁获取，判断是否获得锁，没有获得就休眠一段时间再进行尝试，获得锁就进行数据库查询，结果写入redis，释放锁，返回结果
         //从redis中查询信息
         String key = CACHE_SHOP_KEY + id;

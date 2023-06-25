@@ -17,7 +17,6 @@ public class HmDianPingApplicationTests {
 
     @Test
     public void test1(){
-        System.out.println(shopService);
         shopService.saveShop2Redis(1L,10L);
     }
 }

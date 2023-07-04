@@ -64,7 +64,7 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
         //不存在，获取锁，从数据库中查
         String lockkey="lcok:shop"+id;
         //获取锁成功
-        if (tryLock(key)) {
+        if (tryLock(lockkey)) {
             Shop shop = getById(id);
             Thread.sleep(200);
             if(shop==null){

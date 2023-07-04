@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 
+//分布式全局id生成
 @Component
 public class RedisIdWorker {
     private static final long BEGIN_TIME=1640995200L;

@@ -9,6 +9,8 @@ import com.hmdp.service.IVoucherOrderService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hmdp.utils.RedisIdWorker;
 import com.hmdp.utils.UserHolder;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.aop.framework.AopContext;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -16,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.time.LocalDateTime;
+import java.util.concurrent.TimeUnit;
 
 /**
  * <p>
@@ -34,9 +37,11 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
     private RedisIdWorker redisIdWorker;
     @Resource
     private StringRedisTemplate stringRedisTemplate;
+    @Resource
+    private RedissonClient redissonClient;
 
     @Override
-    public Result seckillVoucher(Long voucherId) {
+    public Result seckillVoucher(Long voucherId) throws InterruptedException {
         //查询秒杀优惠券信息
         SeckillVoucher voucher = seckillVoucherService.getById(voucherId);
         if(voucher==null)return Result.fail("优惠券不存在");
@@ -50,17 +55,23 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
         Integer stock = voucher.getStock();
         //否，返回异常
         if(stock<1)return Result.fail("库存不足");
-        //锁
-        Long id = UserHolder.getUser().getId();
-        SimpleRedisLock simpleRedisLock = new SimpleRedisLock(stringRedisTemplate, "order:"+id);
-        Boolean lock = simpleRedisLock.tryLock(1200);
-        if(lock){
+
+        Long userid = UserHolder.getUser().getId();
+//        SimpleRedisLock simpleRedisLock = new SimpleRedisLock(stringRedisTemplate, "order:"+id);
+//        Boolean lock = simpleRedisLock.tryLock(1200);
+
+        //获取锁（可重入），设置锁的名称
+        RLock lock = redissonClient.getLock("lock:order"+userid);
+        //尝试获取锁，参数：最大等待时间，过期时间，时间单位
+        boolean success = lock.tryLock();
+        if(success){
             try {
                 //获取代理对象（事务）
                 IVoucherOrderService proxy = (IVoucherOrderService) AopContext.currentProxy();
                 return proxy.createVoucherOrder(voucherId);
             }finally {
-                simpleRedisLock.unlock();
+//                simpleRedisLock.unlock();
+                lock.unlock();
             }
         }
         //获得锁失败

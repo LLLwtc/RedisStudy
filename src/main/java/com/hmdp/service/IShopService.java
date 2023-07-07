@@ -21,4 +21,6 @@ public interface IShopService extends IService<Shop> {
     void saveShop2Redis(Long id, Long expireTime);
 
     Shop queryWithLogicalExpire(Long id);
+
+    Result queryShopByType(Integer typeId, Integer current, Double x, Double y);
 }

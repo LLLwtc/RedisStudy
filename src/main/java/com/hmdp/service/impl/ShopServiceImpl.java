@@ -5,6 +5,7 @@ import cn.hutool.core.util.PageUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hmdp.dto.Result;
 import com.hmdp.entity.RedisData;
 import com.hmdp.entity.Shop;
@@ -12,6 +13,7 @@ import com.hmdp.mapper.ShopMapper;
 import com.hmdp.service.IShopService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hmdp.utils.CacheClient;
+import com.hmdp.utils.SystemConstants;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -116,6 +118,27 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
         //获取失败,返回缓存信息
         return JSONUtil.toBean((JSONObject)redisData.getData(),Shop.class);
     }
+
+    @Override
+    public Result queryShopByType(Integer typeId, Integer current, Double x, Double y) {
+        //判断是否需要根据坐标查询
+        if(x==null||y==null){
+            Page<Shop> page = query()
+                    .eq("type_id", typeId).page(new Page<>(current, SystemConstants.DEFAULT_PAGE_SIZE));
+            return Result.ok(page.getRecords());
+        }
+//        计算分页参数
+        int from=(current-1)*SystemConstants.DEFAULT_PAGE_SIZE;
+        int end=current*SystemConstants.DEFAULT_PAGE_SIZE;
+
+        //查询redis、按照距离排序、分页。结果：shopId、distance
+//        stringRedisTemplate.opsForGeo()
+        // 4.解析出id
+        // 5.根据id查询Shop
+        // 6.返回
+        return null;
+    }
+
     //缓存预热
     @Override
     public void saveShop2Redis(Long id, Long expireTime) {

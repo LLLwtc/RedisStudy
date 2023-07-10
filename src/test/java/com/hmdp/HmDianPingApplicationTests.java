@@ -4,6 +4,7 @@ import com.hmdp.entity.Shop;
 import com.hmdp.service.IBlogService;
 import com.hmdp.service.IShopService;
 import com.hmdp.service.impl.ShopServiceImpl;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -41,6 +42,7 @@ public class HmDianPingApplicationTests {
         //按typedId分组
         Map<Long, List<Shop>> shopMap = shopList.stream().collect(Collectors.groupingBy(Shop::getTypeId));
 //        分批写入redis
+
         for (Map.Entry<Long, List<Shop>> entry : shopMap.entrySet()) {
             Long typedId = entry.getKey();
             String key=SHOP_GEO_KEY+typedId;
